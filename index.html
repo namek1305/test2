@@ -2,43 +2,45 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>AR GPS Advanced</title>
+<title>AR GPS FIXED</title>
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin:0; overflow:hidden;">
 
-<a-scene embedded arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false">
+<a-scene embedded arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: true">
 
-<a-camera gps-camera rotation-reader></a-camera>
+<a-camera id="camera" gps-camera rotation-reader></a-camera>
 
-<a-entity id="target" gps-entity-place="latitude: 0; longitude: 0">
+<a-entity id="target">
 <a-box class="clickable" color="red" scale="5 5 5"
 animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
 </a-box>
 </a-entity>
 
-<a-entity id="arrow" position="0 0 -5">
+<a-entity id="arrow" position="0 -0.5 -3" parent="camera">
 <a-cone color="yellow" radius-bottom="0.3" radius-top="0" height="1"></a-cone>
 </a-entity>
 
-<a-text id="distanceText" value="" position="0 2 -3" align="center" color="yellow"></a-text>
+<a-text id="distanceText" value="Waiting GPS..." position="0 2 -3" align="center" color="yellow"></a-text>
 <a-text id="scoreText" value="Score: 0" position="0 1.5 -3" align="center" color="white"></a-text>
 
 </a-scene>
 
 <script>
 let score=0;
-let targetLat=0;
-let targetLon=0;
-const distanceText=document.querySelector('#distanceText');
-const scoreText=document.querySelector('#scoreText');
+let targetLat=null;
+let targetLon=null;
+
+const camera=document.querySelector('#camera');
 const target=document.querySelector('#target');
 const arrow=document.querySelector('#arrow');
+const distanceText=document.querySelector('#distanceText');
+const scoreText=document.querySelector('#scoreText');
 
 function setTargetNearUser(lat, lon){
-targetLat = lat + (Math.random()-0.5)/500;
-targetLon = lon + (Math.random()-0.5)/500;
+targetLat = lat + (Math.random()-0.5)/1000;
+targetLon = lon + (Math.random()-0.5)/1000;
 target.setAttribute('gps-entity-place', `latitude: ${targetLat}; longitude: ${targetLon}`);
 }
 
@@ -57,7 +59,9 @@ window.addEventListener('gps-camera-update-position', e=>{
 const lat=e.detail.position.latitude;
 const lon=e.detail.position.longitude;
 
-if(targetLat===0) setTargetNearUser(lat,lon);
+if(targetLat===null){
+setTargetNearUser(lat,lon);
+}
 
 const dist=getDistance(lat,lon,targetLat,targetLon);
 distanceText.setAttribute('value','Distance: '+Math.round(dist)+' m');
@@ -69,7 +73,9 @@ window.addEventListener('click', e=>{
 if(e.target.classList && e.target.classList.contains('clickable')){
 score++;
 scoreText.setAttribute('value','Score: '+score);
+
 e.target.setAttribute('animation','property: scale; to: 0 0 0; dur:300');
+
 setTimeout(()=>{
 setTargetNearUser(targetLat,targetLon);
 e.target.setAttribute('scale','5 5 5');
