@@ -3,22 +3,28 @@
 <head>
     <meta charset="utf-8">
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin:0; overflow:hidden;">
     <div id="status" style="position:fixed; top:10px; left:10px; z-index:999; color:white; background:rgba(0,0,0,0.5); padding:5px; font-family:monospace;">Waiting GPS...</div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+        
         <a-camera gps-camera rotation-reader>
-            <a-cursor raycaster="objects: .clickable"></a-cursor>
+            <a-cursor raycaster="objects: .clickable" color="yellow"></a-cursor>
         </a-camera>
 
         <a-entity id="box-container">
-            <a-box id="target" class="clickable" color="red" scale="0.5 0.5 0.5" visible="false" 
-                   animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-box>
+            <a-box id="target" 
+                   class="clickable" 
+                   color="red" 
+                   scale="1 1 1" 
+                   visible="false"
+                   animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+            </a-box>
         </a-entity>
 
-        <a-text id="score" value="Score: 0" position="0 -0.5 -1.5" align="center" color="white" scale="0.4 0.4 0.4"></a-text>
+        <a-text id="score" value="Score: 0" position="0 -1 -2" align="center" color="white" scale="0.5 0.5 0.5"></a-text>
     </a-scene>
 
     <script>
@@ -32,12 +38,12 @@
         window.addEventListener('gps-camera-update-position', e => {
             const lat = e.detail.position.latitude;
             const lon = e.detail.position.longitude;
-            status.innerText = `GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+            status.innerText = `GPS OK: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 
             if (!set) {
                 container.setAttribute('gps-entity-place', {
-                    latitude: lat + 0.00002,
-                    longitude: lon + 0.00002
+                    latitude: lat + 0.00005,
+                    longitude: lon + 0.00005
                 });
                 target.setAttribute('visible', 'true');
                 set = true;
@@ -47,14 +53,16 @@
         target.addEventListener('click', () => {
             points++;
             scoreText.setAttribute('value', `Score: ${points}`);
+
             target.setAttribute('scale', '0 0 0');
+            
             setTimeout(() => {
                 const attr = container.getAttribute('gps-entity-place');
                 container.setAttribute('gps-entity-place', {
-                    latitude: parseFloat(attr.latitude) + 0.00001,
-                    longitude: parseFloat(attr.longitude) + 0.00001
+                    latitude: parseFloat(attr.latitude) + 0.00003,
+                    longitude: parseFloat(attr.longitude) + 0.00003
                 });
-                target.setAttribute('scale', '0.5 0.5 0.5');
+                target.setAttribute('scale', '1 1 1');
             }, 500);
         });
 
