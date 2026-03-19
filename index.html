@@ -2,77 +2,65 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>AR GPS mini-game</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.8/aframe/build/aframe-ar.js"></script>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
 </head>
-
 <body style="margin:0; overflow:hidden;">
+    <div id="status" style="position:fixed; top:10px; left:10px; z-index:999; color:white; background:rgba(0,0,0,0.5); padding:5px; font-family:monospace;">Waiting GPS...</div>
 
-    <a-scene embedded vr-mode-ui="enabled: false"
-             arjs="sourceType: webcam; debugUIEnabled: false;"
-             renderer="antialias: true; alpha: true">
-
-        <a-camera id="camera" gps-camera rotation-reader>
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+        <a-camera gps-camera rotation-reader>
             <a-cursor raycaster="objects: .clickable"></a-cursor>
         </a-camera>
 
-        <a-entity light="type: ambient; intensity: 0.5;"></a-entity>
-        <a-entity light="type: directional; intensity: 0.8;" position="1 2 1"></a-entity>
-
-        <a-entity id="target" gps-entity-place="latitude: 0; longitude: 0">
-            <a-box class="clickable"
-                   color="red"
-                   scale="10 10 10"
-                   animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"
-                   animation__click="property: scale; startEvents: click; from: 10 10 10; to: 0 0 0; dur: 300">
-            </a-box>
+        <a-entity id="box-container">
+            <a-box id="target" class="clickable" color="red" scale="0.5 0.5 0.5" visible="false" 
+                   animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-box>
         </a-entity>
 
-        <a-entity id="arrow-container" position="0 -1 -2">
-            <a-cone id="arrow" color="yellow" height="0.5" radius-bottom="0.2" rotation="90 0 0"></a-cone>
-        </a-entity>
-
-        <a-text id="distanceText" value="Searching GPS..." position="0 2 -3" align="center" color="yellow" scale="1 1 1"></a-text>
-        <a-text id="scoreText" value="Score: 0" position="0 1.5 -3" align="center" color="white" scale="0.8 0.8 0.8"></a-text>
-
+        <a-text id="score" value="Score: 0" position="0 -0.5 -1.5" align="center" color="white" scale="0.4 0.4 0.4"></a-text>
     </a-scene>
 
     <script>
-        let score = 0;
-        let targetSet = false;
-
-        const camera = document.querySelector('#camera');
+        const status = document.getElementById('status');
+        const container = document.querySelector('#box-container');
         const target = document.querySelector('#target');
-        const arrow = document.querySelector('#arrow');
-        const distanceText = document.querySelector('#distanceText');
-        const scoreText = document.querySelector('#scoreText');
+        const scoreText = document.querySelector('#score');
+        let points = 0;
+        let set = false;
+
         window.addEventListener('gps-camera-update-position', e => {
-            const userLat = e.detail.position.latitude;
-            const userLon = e.detail.position.longitude;
+            const lat = e.detail.position.latitude;
+            const lon = e.detail.position.longitude;
+            status.innerText = `GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 
-            if (!targetSet) {
-                const tLat = userLat + 0.0001;
-                const tLon = userLon + 0.0001;
-                
-                target.setAttribute('gps-entity-place', `latitude: ${tLat}; longitude: ${tLon}`);
-                targetSet = true;
-                console.log("Target placed at:", tLat, tLon);
+            if (!set) {
+                container.setAttribute('gps-entity-place', {
+                    latitude: lat + 0.00002,
+                    longitude: lon + 0.00002
+                });
+                target.setAttribute('visible', 'true');
+                set = true;
             }
-            const targetPos = target.object3D.position;
-            const cameraPos = camera.object3D.position;
-            const dist = Math.sqrt(Math.pow(targetPos.x - cameraPos.x, 2) + Math.pow(targetPos.z - cameraPos.z, 2));
-
-            distanceText.setAttribute('value', `Distance: ${Math.round(dist)} m`);
         });
+
         target.addEventListener('click', () => {
-            score++;
-            scoreText.setAttribute('value', `Score: ${score}`);
+            points++;
+            scoreText.setAttribute('value', `Score: ${points}`);
+            target.setAttribute('scale', '0 0 0');
             setTimeout(() => {
-                const currentAttr = target.getAttribute('gps-entity-place');
-                target.setAttribute('gps-entity-place', `latitude: ${parseFloat(currentAttr.latitude) + 0.0001}; longitude: ${parseFloat(currentAttr.longitude)}`);
-                target.querySelector('a-box').setAttribute('scale', '10 10 10');
-            }, 1000);
+                const attr = container.getAttribute('gps-entity-place');
+                container.setAttribute('gps-entity-place', {
+                    latitude: parseFloat(attr.latitude) + 0.00001,
+                    longitude: parseFloat(attr.longitude) + 0.00001
+                });
+                target.setAttribute('scale', '0.5 0.5 0.5');
+            }, 500);
+        });
+
+        window.addEventListener('gps-camera-error', () => {
+            status.style.background = "red";
+            status.innerText = "GPS Error/No HTTPS";
         });
     </script>
 </body>
