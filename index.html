@@ -2,78 +2,87 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <title>AR GPS Room Test</title>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 
 <body style="margin:0; overflow:hidden;">
+    <div id="logger" style="position:fixed; top:0; left:0; width:100%; z-index:9999; background:rgba(0,0,0,0.8); color:lime; font-family:monospace; font-size:12px; padding:10px;">
+        Статус: Инициализация...
+    </div>
 
-<a-scene embedded vr-mode-ui="enabled: false"
-         arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded 
+             arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" 
+             vr-mode-ui="enabled: false">
+        
+        <a-camera gps-camera rotation-reader>
+            <a-cursor color="yellow"></a-cursor>
+        </a-camera>
 
-    <a-camera id="camera" gps-camera rotation-reader>
-        <a-cursor raycaster="objects: .clickable" color="yellow"></a-cursor>
-    </a-camera>
+        <a-entity id="main-target" 
+                  class="clickable"
+                  geometry="primitive: box" 
+                  material="color: red" 
+                  scale="1 1 1"
+                  visible="false"
+                  animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+        </a-entity>
 
-    <a-entity id="objects"></a-entity>
+        <a-text id="score-val" value="Score: 0" position="0 -1 -2.5" align="center" color="white"></a-text>
+    </a-scene>
 
-    <a-text id="distanceText" value="Searching GPS..." position="0 2 -3" align="center" color="yellow" scale="0.7 0.7 0.7"></a-text>
-    <a-text id="scoreText" value="Score: 0" position="0 1.5 -3" align="center" color="white" scale="0.5 0.5 0.5"></a-text>
+    <script>
+        const logger = document.getElementById('logger');
+        const target = document.querySelector('#main-target');
+        const scoreText = document.querySelector('#score-val');
+        let points = 0;
+        let isPlaced = false;
 
-</a-scene>
+        function log(msg) {
+            logger.innerHTML += "<br>> " + msg;
+        }
 
-<script>
-    let score = 0;
-    let firstSpawn = true;
-    const objectsContainer = document.querySelector('#objects');
-    const distanceText = document.querySelector('#distanceText');
-    const scoreText = document.querySelector('#scoreText');
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            log("КРИТИЧЕСКАЯ ОШИБКА: Нужен HTTPS!");
+            logger.style.color = "red";
+        }
 
-    function spawnObject(lat, lon) {
-        let newLat = lat + (Math.random() - 0.5) * 0.0001;
-        let newLon = lon + (Math.random() - 0.5) * 0.0001;
+        window.addEventListener('gps-camera-update-position', (e) => {
+            const lat = e.detail.position.latitude;
+            const lon = e.detail.position.longitude;
+            log(`GPS пойман: ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
 
-        const obj = document.createElement('a-box');
-        obj.setAttribute('class', 'clickable');
-        obj.setAttribute('color', 'red');
-        obj.setAttribute('scale', '2 2 2');
-        obj.setAttribute('gps-entity-place', `latitude: ${newLat}; longitude: ${newLon}`);
-        obj.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 3000');
-
-        obj.addEventListener('click', () => {
-            score++;
-            scoreText.setAttribute('value', 'Score: ' + score);
-            
-            obj.setAttribute('animation__die', 'property: scale; to: 0 0 0; dur: 300');
-            
-            setTimeout(() => {
-                if (obj.parentNode) {
-                    obj.parentNode.removeChild(obj);
-                }
-                spawnObject(lat, lon);
-            }, 400);
+            if (!isPlaced) {
+                target.setAttribute('gps-entity-place', {
+                    latitude: lat + 0.00002,
+                    longitude: lon + 0.00002
+                });
+                target.setAttribute('visible', 'true');
+                isPlaced = true;
+                log("Объект отрисован рядом с вами");
+            }
         });
 
-        objectsContainer.appendChild(obj);
-    }
+        target.addEventListener('click', () => {
+            points++;
+            scoreText.setAttribute('value', `Score: ${points}`);
+            log("Попадание!");
+            
+            target.setAttribute('visible', 'false');
+            setTimeout(() => {
+                const attr = target.getAttribute('gps-entity-place');
+                target.setAttribute('gps-entity-place', {
+                    latitude: parseFloat(attr.latitude) + 0.00002,
+                    longitude: parseFloat(attr.longitude) + 0.00002
+                });
+                target.setAttribute('visible', 'true');
+            }, 1000);
+        });
 
-    window.addEventListener('gps-camera-update-position', e => {
-        const lat = e.detail.position.latitude;
-        const lon = e.detail.position.longitude;
-
-        if (firstSpawn) {
-            distanceText.setAttribute('value', 'GPS Connected');
-            for(let i=0; i<3; i++) {
-                spawnObject(lat, lon);
-            }
-            firstSpawn = false;
-        }
-    });
-
-    window.addEventListener('gps-camera-error', () => {
-        distanceText.setAttribute('value', 'ERROR: Check HTTPS/GPS');
-        distanceText.setAttribute('color', 'red');
-    });
-</script>
+        window.addEventListener('gps-camera-error', (e) => {
+            log("Ошибка датчиков: " + e.detail.message);
+        });
+    </script>
 </body>
 </html>
