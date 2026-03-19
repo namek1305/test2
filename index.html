@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AR GPS Game</title>
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+</head>
+<body style="margin:0; overflow:hidden;">
+
+<a-scene embedded arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false">
+
+<a-camera gps-camera rotation-reader></a-camera>
+
+<a-entity gps-entity-place="latitude: 55.751244; longitude: 37.618423">
+<a-box class="clickable" color="red" scale="5 5 5"
+animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+</a-box>
+</a-entity>
+
+<a-entity gps-entity-place="latitude: 55.751500; longitude: 37.618800">
+<a-sphere class="clickable" color="blue" scale="5 5 5"
+animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+</a-sphere>
+</a-entity>
+
+<a-entity gps-entity-place="latitude: 55.751000; longitude: 37.618000">
+<a-cylinder class="clickable" color="green" scale="5 5 5"
+animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+</a-cylinder>
+</a-entity>
+
+<a-text id="scoreText" value="Score: 0" position="0 2 -3" align="center" color="yellow"></a-text>
+
+</a-scene>
+
+<script>
+let score=0;
+const scoreText=document.querySelector('#scoreText');
+
+document.addEventListener('click',function(e){
+const target=e.target;
+if(target.classList && target.classList.contains('clickable')){
+score++;
+scoreText.setAttribute('value','Score: '+score);
+target.setAttribute('animation','property: scale; to: 0 0 0; dur:300');
+setTimeout(()=>target.remove(),300);
+}
+});
+</script>
+
+</body>
+</html>
