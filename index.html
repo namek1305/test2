@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>AR GPS Game</title>
+<title>AR GPS Advanced</title>
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
@@ -12,39 +12,68 @@
 
 <a-camera gps-camera rotation-reader></a-camera>
 
-<a-entity gps-entity-place="latitude: 55.751244; longitude: 37.618423">
+<a-entity id="target" gps-entity-place="latitude: 0; longitude: 0">
 <a-box class="clickable" color="red" scale="5 5 5"
 animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
 </a-box>
 </a-entity>
 
-<a-entity gps-entity-place="latitude: 55.751500; longitude: 37.618800">
-<a-sphere class="clickable" color="blue" scale="5 5 5"
-animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-</a-sphere>
+<a-entity id="arrow" position="0 0 -5">
+<a-cone color="yellow" radius-bottom="0.3" radius-top="0" height="1"></a-cone>
 </a-entity>
 
-<a-entity gps-entity-place="latitude: 55.751000; longitude: 37.618000">
-<a-cylinder class="clickable" color="green" scale="5 5 5"
-animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-</a-cylinder>
-</a-entity>
-
-<a-text id="scoreText" value="Score: 0" position="0 2 -3" align="center" color="yellow"></a-text>
+<a-text id="distanceText" value="" position="0 2 -3" align="center" color="yellow"></a-text>
+<a-text id="scoreText" value="Score: 0" position="0 1.5 -3" align="center" color="white"></a-text>
 
 </a-scene>
 
 <script>
 let score=0;
+let targetLat=0;
+let targetLon=0;
+const distanceText=document.querySelector('#distanceText');
 const scoreText=document.querySelector('#scoreText');
+const target=document.querySelector('#target');
+const arrow=document.querySelector('#arrow');
 
-document.addEventListener('click',function(e){
-const target=e.target;
-if(target.classList && target.classList.contains('clickable')){
+function setTargetNearUser(lat, lon){
+targetLat = lat + (Math.random()-0.5)/500;
+targetLon = lon + (Math.random()-0.5)/500;
+target.setAttribute('gps-entity-place', `latitude: ${targetLat}; longitude: ${targetLon}`);
+}
+
+function getDistance(lat1, lon1, lat2, lon2){
+const R=6371e3;
+const φ1=lat1*Math.PI/180;
+const φ2=lat2*Math.PI/180;
+const Δφ=(lat2-lat1)*Math.PI/180;
+const Δλ=(lon2-lon1)*Math.PI/180;
+const a=Math.sin(Δφ/2)*Math.sin(Δφ/2)+Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)*Math.sin(Δλ/2);
+const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+return R*c;
+}
+
+window.addEventListener('gps-camera-update-position', e=>{
+const lat=e.detail.position.latitude;
+const lon=e.detail.position.longitude;
+
+if(targetLat===0) setTargetNearUser(lat,lon);
+
+const dist=getDistance(lat,lon,targetLat,targetLon);
+distanceText.setAttribute('value','Distance: '+Math.round(dist)+' m');
+
+arrow.object3D.lookAt(target.object3D.position);
+});
+
+window.addEventListener('click', e=>{
+if(e.target.classList && e.target.classList.contains('clickable')){
 score++;
 scoreText.setAttribute('value','Score: '+score);
-target.setAttribute('animation','property: scale; to: 0 0 0; dur:300');
-setTimeout(()=>target.remove(),300);
+e.target.setAttribute('animation','property: scale; to: 0 0 0; dur:300');
+setTimeout(()=>{
+setTargetNearUser(targetLat,targetLon);
+e.target.setAttribute('scale','5 5 5');
+},400);
 }
 });
 </script>
